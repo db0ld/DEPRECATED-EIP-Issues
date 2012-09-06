@@ -1,0 +1,88 @@
+/* ************************************************************************* */
+/* Project: La Vie Est Un Jeu - Internal Portal                              */
+/* Description: CSS stylesheet                                               */
+/* Author: db0 /db0company@gmail.com, http://db0.fr//                        */
+/* Latest Version is on GitHub: http://goo.gl/nq7mj                          */
+/* ************************************************************************* */
+
+body {
+    margin: auto;
+    background: white;
+    font-family: sans-serif;
+    color: #000000;
+}
+
+.menu {
+    padding: 1%;
+}
+
+.page {
+    padding-top: 1%;
+    padding-right: 2%;
+}
+
+.cute_logo {
+    float: left;
+    margin-right: 2%;
+    margin-bottom: 1%;
+}
+
+.right_icon {
+    float: right;
+    padding-left: 1%;
+    padding-bottom: 1%;
+}
+
+.center_icon {
+    padding: 1%;
+}
+
+.subtitle {
+    font-weight: normal;
+    font-style: italic;
+}
+
+.paraph {
+    clear: both;
+}
+
+.well-small {
+    height: 200px;
+}
+
+iframe {
+    width: 100%;
+    overflow: auto;
+    border: none;
+}
+
+.bigiframe {
+    height: 800px;
+}
+
+small {
+    display: block;
+    color: #ccc;
+    font-style: italic;
+    margin: -4px;
+}
+
+dd {
+    margin-bottom: 4%;
+}
+
+.irc {
+    text-align: center;
+    font-size: 1.2em;
+    padding: 35px;
+    font-weight: bold;
+}
+
+.irc a:hover {
+    text-decoration: none;
+}
+
+h3 code {
+    font-size: 1em;
+}
+
