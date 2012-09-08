@@ -20,6 +20,12 @@ function	edit_conf_file() {
     cp $file $file.bak && \
 	sed -i".tmp" 's/\$PORT/'$port'/' $file && \
 	sed -i".tmp" 's/\$PWD/'$pwd'/' $file && \
+	echo -n "Your GitHub login? " && \
+	read githublogin && \
+        sed -i".tmp" 's/\$GITHUBLOGIN/'$githublogin'/' $file
+	echo -n "Your GitHub password? " && \
+	read githubpassword && \
+        sed -i".tmp" 's/\$GITHUBPASSWORD/'$githubpassword'/' $file
 	rm *.tmp && \
 	return 0
     return 1
@@ -48,7 +54,7 @@ echo -n "Install Modules... " && \
 
     echo "Done." && \
 
-    echo -n "Edit configuration file... " && \
+    echo "Edit configuration file... " && \
     edit_conf_file 'lavieestunjeu-portal.conf' $port && \
     echo "Done."
 

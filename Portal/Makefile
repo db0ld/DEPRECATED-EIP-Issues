@@ -6,7 +6,7 @@ STATICDIR := static/
 
 ## Packages required to build the server part of the application
 
-SERVER_PACKAGES :=
+SERVER_PACKAGES := curl, yojson
 
 ## Packages to be linked in the client part
 
@@ -15,8 +15,9 @@ CLIENT_PACKAGES :=
 ## Source files for the server part
 
 SERVER_FILES := 				\
-		gCal.eliom			\
 		tools.eliom			\
+		github.ml			\
+		gCal.eliom			\
 		portal.eliom			\
 						\
 
