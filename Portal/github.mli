@@ -49,11 +49,19 @@ type assignee =
       a_avatar : string;
     }
 
+type label =
+    {
+      label_url   : string;
+      label_name  : string;
+      label_color : string;
+    }
+
 type issue =
     {
       title     : string;
       issue_url : string;
       assignee  : assignee option;
+      labels    : label list;
     }
 
 type issues =

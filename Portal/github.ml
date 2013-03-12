@@ -30,7 +30,7 @@ let get_text_form_url url =
   let writer accum data =
     Buffer.add_string accum data;
     String.length data in
-  let result = Buffer.create 99999999
+  let result = Buffer.create 4096
   and errorBuffer = ref "" in
   Curl.global_init Curl.CURLINIT_GLOBALALL;
   let text =
@@ -127,11 +127,19 @@ type assignee =
       a_avatar : string;
     }
 
+type label =
+    {
+      label_url   : string;
+      label_name  : string;
+      label_color : string;
+    }
+
 type issue =
     {
       title     : string;
       issue_url : string;
       assignee  : assignee option;
+      labels    : label list;
     }
 
 type issues =
@@ -156,11 +164,20 @@ let get_issues user repo_name =
 	  {
 	    a_name   = a |> member "login"      |> to_string;
 	    a_avatar = a |> member "avatar_url" |> to_string;
-	  } in
+	  }
+    and get_labels =
+      let to_label label =
+	{
+	  label_url   = label |> member "url"   |> to_string;
+	  label_name  = label |> member "name"  |> to_string;
+	  label_color = label |> member "color" |> to_string;
+	} in
+      List.map to_label in
     {
       title           = tree |> member "title"    |> to_string;
       issue_url       = tree |> member "html_url" |> to_string;
-      assignee        = get_assignee tree
+      assignee        = get_assignee tree;
+      labels          = get_labels (tree |> member "labels" |> to_list);
     } in
   let issues = List.map issue (tree |> to_list) in
   {

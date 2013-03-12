@@ -356,11 +356,18 @@ let _ =
            b [pcdata a.Github.a_name]]
         | None   ->
           [h3 ~a:[a_class ["badge"; "badge-important"]]
-              [pcdata "Personne !"]] in
+              [pcdata "Personne !"]]
+      and display_labels =
+	let display_label label =
+	  span ~a:[a_class ["badge"];
+		   a_style ("background-color: #" ^ label.Github.label_color)]
+	    [pcdata label.Github.label_name] in
+	List.map display_label in
       skeletton ~page_title:(get_page_title issues) ~curr_service:issues
         [h1 [pcdata (get_page_title_anyway issues)];
          table ~a:[a_class ["table"; "table-bordered"]]
            (tr [th [pcdata "Dépôt"];
+                th [pcdata "Labels"];
                 th [pcdata "Nom de la tâche (issue)"];
                 th [pcdata "Assigné"];
                 th [pcdata "Lien"]
@@ -372,6 +379,7 @@ let _ =
                            then "background-color: #F9F9F9;" else "")]
                   [td [Tools.external_link repo.Github.url
                           [pcdata (repo.Github.name)]];
+		   td (display_labels issue.Github.labels);
                    td [pcdata (issue.Github.title)];
                    td (display_assignee issue.Github.assignee);
                    td [Tools.external_link issue.Github.issue_url
