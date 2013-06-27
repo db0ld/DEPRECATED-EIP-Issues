@@ -5,6 +5,8 @@
 (* Latest Version is on GitHub: http://goo.gl/nq7mj                           *)
 (* ************************************************************************** *)
 
+type 'a api = ApiSuccess of 'a | ApiError of string
+
 (* ************************************************************************** *)
 (* Requirements                                                               *)
 (* ************************************************************************** *)
@@ -37,7 +39,7 @@ type repositories =
       repos     : repository list;
     }
 
-val get_repos : ?usertype : usertype -> string -> repositories
+val get_repos : ?usertype : usertype -> string -> repositories api
 
 (* ************************************************************************** *)
 (* Get Issues                                                                 *)
@@ -72,14 +74,14 @@ type issues =
       issues    : issue list;
     }
 
-val get_issues : string -> string -> issues
-val get_issues_from_repository : repository -> issues
+val get_issues : string -> string -> issues api
+val get_issues_from_repository : repository -> issues api
 
 type organization_issues =
     {
       o_name       : string;
       o_issues_url : string;
-      o_issues     : (repository * issue) list;
+      o_issues     : (repository * issues) list;
     }
 
-val get_issues_from_organization : string -> organization_issues
+val get_issues_from_organization : string -> organization_issues api

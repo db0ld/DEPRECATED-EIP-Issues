@@ -128,6 +128,10 @@ let mapi f l =
 let great_iframe url =
   iframe ~a:[a_src (Xml.uri_of_string url); a_class ["bigiframe"]] []
 
+let display_error e =
+  div ~a:[a_class ["alert"; "alert-error"]]
+    [pcdata e]
+
 (* ************************************************************************** *)
 (* Set GitHub Login/Password                                                  *)
 (* ************************************************************************** *)
@@ -348,46 +352,51 @@ let _ =
 let _ =
   Example.register ~service:issues
     (fun () () ->
-      let o_issues = Github.get_issues_from_organization "LaVieEstUnJeu" in
-      let display_assignee = function
-        | Some a ->
-          [img ~alt:(a.Github.a_name) ~a:[a_class ["avatar"]]
-              ~src:(Xml.uri_of_string a.Github.a_avatar) ();
-           b [pcdata a.Github.a_name]]
-        | None   ->
-          [h3 ~a:[a_class ["badge"; "badge-important"]]
-              [pcdata "Personne !"]]
-      and display_labels =
-	let display_label label =
-	  span ~a:[a_class ["badge"];
-		   a_style ("background-color: #" ^ label.Github.label_color)]
-	    [pcdata label.Github.label_name] in
-	List.map display_label in
+      let display_o_issues o_issues =
+	let display_repo (repo, issues) =
+	  let display_issue i issue =
+	    let display_assignee = function
+              | Some a ->
+		[img ~alt:(a.Github.a_name) ~a:[a_class ["avatar"]]
+		    ~src:(Xml.uri_of_string a.Github.a_avatar) ();
+		 b [pcdata a.Github.a_name]]
+              | None   ->
+		[h3 ~a:[a_class ["badge"; "badge-important"]]
+		    [pcdata "Personne !"]]
+	    and display_labels =
+	      let display_label label =
+		span ~a:[a_class ["badge"];
+			 a_style ("background-color: #" ^ label.Github.label_color)]
+		  [pcdata label.Github.label_name] in
+	      List.map display_label in
+            tr ~a:[a_style
+                      (if (i mod 2) = 0
+                       then "background-color: #F9F9F9;" else "")]
+              [td [Tools.external_link repo.Github.url
+                      [pcdata (repo.Github.name)]];
+	       td (display_labels issue.Github.labels);
+               td [pcdata (issue.Github.title)];
+               td (display_assignee issue.Github.assignee);
+               td [Tools.external_link issue.Github.issue_url
+                      [div ~a:[a_class ["btn"; "btn-info"; "btn-large"]]
+			  [pcdata "» Voir le détail de la tâche"]];
+		  ];
+              ] in
+	  div [h2 [pcdata repo.Github.name];
+	       table ~a:[a_class ["table"; "table-bordered"]]
+		 (tr [th [pcdata "Dépôt"];
+                      th [pcdata "Labels"];
+                      th [pcdata "Nom de la tâche (issue)"];
+                      th [pcdata "Assigné"];
+                      th [pcdata "Lien"]
+		     ])
+		 (mapi display_issue issues.Github.issues)] in
+        div [h1 [pcdata (get_page_title_anyway issues)];
+	     div (List.map display_repo o_issues.Github.o_issues)] in
       skeletton ~page_title:(get_page_title issues) ~curr_service:issues
-        [h1 [pcdata (get_page_title_anyway issues)];
-         table ~a:[a_class ["table"; "table-bordered"]]
-           (tr [th [pcdata "Dépôt"];
-                th [pcdata "Labels"];
-                th [pcdata "Nom de la tâche (issue)"];
-                th [pcdata "Assigné"];
-                th [pcdata "Lien"]
-               ])
-           (mapi
-              (fun i (repo, issue) ->
-                tr ~a:[a_style
-                          (if (i mod 2) = 0
-                           then "background-color: #F9F9F9;" else "")]
-                  [td [Tools.external_link repo.Github.url
-                          [pcdata (repo.Github.name)]];
-		   td (display_labels issue.Github.labels);
-                   td [pcdata (issue.Github.title)];
-                   td (display_assignee issue.Github.assignee);
-                   td [Tools.external_link issue.Github.issue_url
-                          [div ~a:[a_class ["btn"; "btn-info"; "btn-large"]]
-                              [pcdata "» Voir le détail de la tâche"]];
-                      ];
-                  ])
-              o_issues.Github.o_issues)])
+	[match Github.get_issues_from_organization "LaVieEstUnJeu" with
+	  | Github.ApiSuccess o_issues -> display_o_issues o_issues
+	  | Github.ApiError e -> display_error e])
 
 (* ************************************************************************** *)
 (* GitHub repositories                                                        *)
@@ -396,35 +405,36 @@ let _ =
 let _ =
   Example.register ~service:github
     (fun () () ->
-      let repos =
-        Github.get_repos
-          ~usertype:Github.Organization "LaVieEstUnJeu" in
-      let display_repo repo =
-        let horizontal_element (name, content) =
-          div ~a:[a_class ["row-fluid"]]
-            [div ~a:[a_class ["span6"]] [b [pcdata name]];
-             div ~a:[a_class ["span6"]] [content]]
-        and infos =
-          [("Nombre de tâches en cours", 
-            cdata (string_of_int repo.Github.nb_issues));
-           ("Description", pcdata repo.Github.description);
-           ("Date de dernier push", pcdata repo.Github.pushed_at);
-           ("git clone", pre [pcdata repo.Github.git_url]);
-          ] in
-        div ~a:[a_class ["well"]]
-          [h1 [pcdata (repo.Github.name)];
-           div (List.map horizontal_element infos);
-           Tools.external_link repo.Github.issues_url
-             [div ~a:[a_class ["btn"; "btn-success"; "btn-large"]]
-                 [pcdata "» Voir les tâches en cours"]];
-           pcdata " ";
-           Tools.external_link repo.Github.url
-             [div ~a:[a_class ["btn"; "btn-info"; "btn-large"]]
-                 [pcdata "» Voir le dépôt"]];
-          ] in
+      let display_repos repos =
+	let display_repo repo =
+          let horizontal_element (name, content) =
+            div ~a:[a_class ["row-fluid"]]
+              [div ~a:[a_class ["span6"]] [b [pcdata name]];
+               div ~a:[a_class ["span6"]] [content]]
+          and infos =
+            [("Nombre de tâches en cours", 
+              cdata (string_of_int repo.Github.nb_issues));
+             ("Description", pcdata repo.Github.description);
+             ("Date de dernier push", pcdata repo.Github.pushed_at);
+             ("git clone", pre [pcdata repo.Github.git_url]);
+            ] in
+          div ~a:[a_class ["well"]]
+            [h1 [pcdata (repo.Github.name)];
+             div (List.map horizontal_element infos);
+             Tools.external_link repo.Github.issues_url
+               [div ~a:[a_class ["btn"; "btn-success"; "btn-large"]]
+                   [pcdata "» Voir les tâches en cours"]];
+             pcdata " ";
+             Tools.external_link repo.Github.url
+               [div ~a:[a_class ["btn"; "btn-info"; "btn-large"]]
+                   [pcdata "» Voir le dépôt"]];
+            ] in
+	div [h1 [pcdata (get_page_title_anyway github)];
+             div (List.map display_repo (repos.Github.repos))] in
       skeletton ~page_title:(get_page_title github) ~curr_service:github
-        [h1 [pcdata (get_page_title_anyway github)];
-         div (List.map display_repo (repos.Github.repos))])
+	[match Github.get_repos ~usertype:Github.Organization "LaVieEstUnJeu" with
+	  | Github.ApiSuccess repos -> display_repos repos
+	  | Github.ApiError e -> display_error e])
 
 (* ************************************************************************** *)
 (* Google Drive                                                               *)

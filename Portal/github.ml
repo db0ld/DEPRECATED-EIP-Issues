@@ -7,6 +7,8 @@
 
 open Yojson.Basic.Util
 
+type 'a api = ApiSuccess of 'a | ApiError of string
+
 (* ************************************************************************** *)
 (* Requirements                                                               *)
 (* ************************************************************************** *)
@@ -60,6 +62,16 @@ let curljson url =
   let result = get_text_form_url url in
   Yojson.Basic.from_string result
 
+let go url f =
+  try ApiSuccess (f (curljson url))
+  with
+    | Yojson.Basic.Util.Type_error (msg, tree) ->
+      ApiError (msg ^ "\n" ^ (Yojson.Basic.to_string tree))
+    | Yojson.Json_error msg -> ApiError msg
+    | Failure msg -> ApiError msg
+    | Invalid_argument s -> ApiError s
+    | _ -> ApiError "something else"
+
 (* ************************************************************************** *)
 (* Get repositories                                                           *)
 (* ************************************************************************** *)
@@ -94,28 +106,29 @@ let get_repos ?(usertype = User) user =
   let url =
     "https://api.github.com/" ^ (usertype_tostring usertype) ^ "/" ^
       user ^ "/repos?sort=updated&" in
-  let tree = curljson url in
-  let repo tree =
-    let name = tree |> member "name" |> to_string in
+  let _ = print_endline url in
+  let f tree =
+    let repo tree =
+      let name = tree |> member "name" |> to_string in
+      {
+	owner       = user;
+	name        = name;
+	description = tree |> member "description" |> to_string;
+	pushed_at   = tree |> member "pushed_at"   |> to_string;
+	git_url     = tree |> member "git_url"     |> to_string;
+	nb_issues   = tree |> member "open_issues" |> to_int;
+	url         = tree |> member "html_url"    |> to_string;
+	issues_url  =
+	  "https://github.com/" ^ user ^ "/" ^ name ^
+	    "/issues?sort=created&state=open";
+      } in
+    let repos = List.map repo (tree |> to_list) in
     {
-      owner       = user;
-      name        = name;
-      description = tree |> member "description" |> to_string;
-      pushed_at   = tree |> member "pushed_at"   |> to_string;
-      git_url     = tree |> member "git_url"     |> to_string;
-      nb_issues   = tree |> member "open_issues" |> to_int;
-      url         = tree |> member "html_url"    |> to_string;
-      issues_url  =
-	"https://github.com/" ^ user ^ "/" ^ name ^
-	  "/issues?sort=created&state=open";
-
+      user_type = usertype;
+      user_name = user;
+      repos     = repos;
     } in
-  let repos = List.map repo (tree |> to_list) in
-  {
-    user_type = usertype;
-    user_name = user;
-    repos     = repos;
-  }
+  go url f
 
 (* ************************************************************************** *)
 (* Get Issues                                                                 *)
@@ -155,39 +168,40 @@ let get_issues user repo_name =
   let url =
     "https://api.github.com/repos/" ^ user ^ "/" ^
       repo_name ^ "/issues?state=open&sort=created&direction=asc" in
-  let tree = curljson url in
-  let issue tree =
-    let get_assignee tree =
-      match tree |> member "assignee" with
-	| `Null  -> None
-	| _ as a -> Some
+  let f tree =
+    let issue tree =
+      let get_assignee tree =
+	match tree |> member "assignee" with
+	  | `Null  -> None
+	  | _ as a -> Some
+	    {
+	      a_name   = a |> member "login"      |> to_string;
+	      a_avatar = a |> member "avatar_url" |> to_string;
+	    }
+      and get_labels =
+	let to_label label =
 	  {
-	    a_name   = a |> member "login"      |> to_string;
-	    a_avatar = a |> member "avatar_url" |> to_string;
-	  }
-    and get_labels =
-      let to_label label =
-	{
-	  label_url   = label |> member "url"   |> to_string;
-	  label_name  = label |> member "name"  |> to_string;
-	  label_color = label |> member "color" |> to_string;
-	} in
-      List.map to_label in
+	    label_url   = label |> member "url"   |> to_string;
+	    label_name  = label |> member "name"  |> to_string;
+	    label_color = label |> member "color" |> to_string;
+	  } in
+	List.map to_label in
+      {
+	title           = tree |> member "title"    |> to_string;
+	issue_url       = tree |> member "html_url" |> to_string;
+	assignee        = get_assignee tree;
+	labels          = get_labels (tree |> member "labels" |> to_list);
+      } in
+    let issues = List.map issue (tree |> to_list) in
     {
-      title           = tree |> member "title"    |> to_string;
-      issue_url       = tree |> member "html_url" |> to_string;
-      assignee        = get_assignee tree;
-      labels          = get_labels (tree |> member "labels" |> to_list);
+      user      = user;
+      repo_name = repo_name;
+      html_url  =
+	"https://github.com/" ^ user ^ "/" ^ repo_name ^
+	  "/issues?sort=created&state=open";
+      issues    = issues;
     } in
-  let issues = List.map issue (tree |> to_list) in
-  {
-    user      = user;
-    repo_name = repo_name;
-    html_url  =
-      "https://github.com/" ^ user ^ "/" ^ repo_name ^
-	"/issues?sort=created&state=open";
-    issues    = issues;
-  }
+  go url f
 
 (* repository -> issues                                                       *)
 let get_issues_from_repository repo =
@@ -197,19 +211,24 @@ type organization_issues =
     {
       o_name       : string;
       o_issues_url : string;
-      o_issues     : (repository * issue) list;
+      o_issues     : (repository * issues) list;
     }
 
 (* string -> organization_issues                                              *)
 let get_issues_from_organization org =
-  let repos = get_repos ~usertype:Organization org in
-  let aux_ifr repo = (get_issues_from_repository repo).issues in
-  let aux_pair repo issue = (repo, issue) in
-  let aux_issue_repos repo = List.map (aux_pair repo) (aux_ifr repo) in
-  {
-    o_name       = org;
-    o_issues_url =
-      "https://github.com/organizations/" ^ org ^
-	"/dashboard/issues/repos?direction=asc&sort=created&state=open";
-    o_issues     = List.flatten (List.map aux_issue_repos repos.repos)
-  }
+  match get_repos ~usertype:Organization org with
+    | ApiError e -> ApiError e
+    | ApiSuccess repos ->
+      let f repo =
+	match get_issues_from_repository repo with
+	  | ApiError e -> raise (Failure e)
+	  | ApiSuccess issues -> (repo, issues) in
+      try
+	ApiSuccess {
+	  o_name       = org;
+	  o_issues_url =
+	    "https://github.com/organizations/" ^ org ^
+	      "/dashboard/issues/repos?direction=asc&sort=created&state=open";
+	  o_issues     = List.map f repos.repos;
+	}
+      with Failure e -> ApiError e
