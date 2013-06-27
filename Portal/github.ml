@@ -46,6 +46,8 @@ let get_text_form_url url =
        Curl.set_httpauth connection [Curl.CURLAUTH_BASIC];
        Curl.set_userpwd connection (!userpwd);
        
+       Curl.set_useragent connection "LaVieEstUnJeu-Portal";
+
        Curl.perform connection;
        Curl.cleanup connection;
        Buffer.contents result)
