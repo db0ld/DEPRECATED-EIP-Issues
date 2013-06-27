@@ -107,8 +107,7 @@ let usertype_tostring = function
 let get_repos ?(usertype = User) user =
   let url =
     "https://api.github.com/" ^ (usertype_tostring usertype) ^ "/" ^
-      user ^ "/repos?sort=updated&" in
-  let _ = print_endline url in
+      user ^ "/repos?sort=updated&direction=desc" in
   let f tree =
     let repo tree =
       let name = tree |> member "name" |> to_string in

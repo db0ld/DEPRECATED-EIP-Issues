@@ -8,7 +8,7 @@
 {shared{
 open Eliom_content
 open Html5
-open D
+open F
 }}
 
 open Eliom_parameter
@@ -352,6 +352,15 @@ let _ =
 let _ =
   Example.register ~service:issues
     (fun () () ->
+      let display_summary o_issues =
+	let display_line (repo, issues) =
+	  let serv = Eliom_service.external_service
+	    ~prefix:("#" ^ repo.Github.name) ~path:[] ~get_params:unit () in
+	  li ~a:[a_style (match issues.Github.issues with
+	    | [] -> "display: none" | _ -> "")]
+	    [a serv [pcdata repo.Github.name] ()] in
+	ul ~a:[a_class ["nav"; "nav-pills"]]
+	  (List.map display_line o_issues) in
       let display_o_issues o_issues =
 	let display_repo (repo, issues) =
 	  let display_issue i issue =
@@ -382,16 +391,21 @@ let _ =
 			  [pcdata "» Voir le détail de la tâche"]];
 		  ];
               ] in
-	  div [h2 [pcdata repo.Github.name];
-	       table ~a:[a_class ["table"; "table-bordered"]]
-		 (tr [th [pcdata "Dépôt"];
-                      th [pcdata "Labels"];
-                      th [pcdata "Nom de la tâche (issue)"];
-                      th [pcdata "Assigné"];
-                      th [pcdata "Lien"]
-		     ])
-		 (mapi display_issue issues.Github.issues)] in
+	  match issues.Github.issues with
+	    | [] -> div []
+	    | issues ->
+	      div ~a:[a_id (repo.Github.name ^ "/")]
+		[h2 [pcdata repo.Github.name];
+		 table ~a:[a_class ["table"; "table-bordered"]]
+		   (tr [th [pcdata "Dépôt"];
+			th [pcdata "Labels"];
+			th [pcdata "Nom de la tâche (issue)"];
+			th [pcdata "Assigné"];
+			th [pcdata "Lien"]
+		       ])
+		   (mapi display_issue issues)] in
         div [h1 [pcdata (get_page_title_anyway issues)];
+	     display_summary o_issues.Github.o_issues;
 	     div (List.map display_repo o_issues.Github.o_issues)] in
       skeletton ~page_title:(get_page_title issues) ~curr_service:issues
 	[match Github.get_issues_from_organization "LaVieEstUnJeu" with
