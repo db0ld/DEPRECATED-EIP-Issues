@@ -31,51 +31,42 @@ let new_service path = Eliom_service.service ~path:path ~get_params:unit ()
 
 let main          = new_service []
 let agenda        = new_service ["agenda"; ""]
-let global_agenda = new_service ["agenda"; "global"]
 let issues        = new_service ["issues"]
 let github        = new_service ["github"]
-let drive         = new_service ["drive"]
+let documents     = new_service ["documents"]
 let emails        = new_service ["emails"]
 let server        = new_service ["server"]
-let irc           = new_service ["irc"]
 let group         = new_service ["group"]
-let vitrine       = new_service ["vitrine"]
-let marks         = new_service ["marks"]
-let instructions  = new_service ["instructions"]
-let visio         = new_service ["visio"]
-let tickets       = new_service ["tickets"]
+let epitech       = new_service ["epitech"]
+let faq           = new_service ["F.A.Q."]
 
 let nolink = Tools.no_link ()
 
 let pages =
-  [(main,          ("Accueil", ""));
+  [(main,          ("Home", "", "home"));
 
-   (nolink,        ("Organisation", ""));
-   (agenda,        ("Agenda", "Rendez-vous, événements, rendus"));
-   (global_agenda, ("Agenda Global", "Répartition du travail sur l'année"));
+   (nolink,        ("Get things done", "", "stats"));
+   (agenda,        ("Calendar", "Weekly meetings, special events", "calendar"));
+   (issues,        ("Tasks", "What are the very next actions?", "fire"));
 
-   (nolink,        ("Code", ""));
-   (issues,        ("Tâches en cours", "Issues Github ouvertes"));
-   (github,        ("Dépôts GitHub", ""));
-   (server,        ("Le serveur", "Documentation et trésorerie"));
+   (nolink,        ("Communicate", "", "conversation"));
+   (emails,        ("E-mails", "Let's talk together on our Google Groups",
+		    "envelope"));
+   (group,         ("Team", "All the team members and their info", "group"));
 
-   (nolink,        ("Communication", ""));
-   (emails,        ("E-mails", "Le Google Groups"));
-   (irc,           ("Channel de discussion IRC", "Widget IRC"));
-   (group,         ("Informations sur le groupe",
-                    "Teams, téléphones, Gtalk, ..."));
+   (nolink,        ("Code", "", "embed_close"));
+   (github,        ("GitHub", "Our repositories", "inbox_in"));
+   (server,        ("The Server", "We use it to test and code", "cloud"));
 
-   (nolink,        ("Documents", ""));
-   (vitrine,       ("Tous les documents", "Les dernières versions"));
-   (instructions,  ("Consignes", "des documents à rendre"));
-   (drive,         ("Google Documents", ""));
+   (nolink,        ("Wiki", "", "circle_info"));
+   (documents,     ("Documents", "All the documentation in one place",
+		    "folder_open"));
+   (faq,           ("F.A.Q.", "All you need to know when you enter the group",
+		    "life_preserver"));
 
-   (nolink,        ("Lab EIP", ""));
-   (vitrine,       ("Site Vitrine", ""));
-   (marks,         ("Notes aux projets", ""));
-   (visio,         ("Lien de visio conférence",
-                    "Cliquer sur le lien \"Live Meeting\""));
-   (tickets,       ("Tickets", "Discussions avec le Lab EIP"));
+   (nolink,        ("Epitech", "", "table"));
+   (epitech,       ("LabEIP", "Tickets, Grades, Assessment",
+		    "show_big_thumbnails"));
   ]
 
 let get_page_infos srv =
@@ -84,8 +75,8 @@ let get_page_infos srv =
 
 let get_page_title srv =
   match get_page_infos srv with
-    | Some (name, _) -> Some name
-    | None           -> None
+    | Some (name, _, _) -> Some name
+    | None              -> None
 
 let get_page_title_anyway srv =
   match get_page_title srv with
@@ -94,12 +85,22 @@ let get_page_title_anyway srv =
 
 let get_page_descr srv =
   match get_page_infos srv with
-    | Some (_, descr) -> Some descr
-    | None            -> None
+    | Some (_, descr, _) -> Some descr
+    | None               -> None
 
 let get_page_descr_anyway srv =
   match get_page_descr srv with
     | Some descr -> descr
+    | None       -> ""
+
+let get_page_icon srv =
+  match get_page_infos srv with
+    | Some (_, _, icon) -> Some icon
+    | None              -> None
+
+let get_page_icon_anyway srv =
+  match get_page_icon srv with
+    | Some icon -> icon
     | None      -> ""
 
 (* ************************************************************************** *)
@@ -132,6 +133,11 @@ let display_error e =
   div ~a:[a_class ["alert"; "alert-error"]]
     [pcdata e]
 
+let icon icon =
+  img ~alt:icon ~a:[a_style "padding: 5px;"]
+    ~src:(Xml.uri_of_string ("http://icons.db0.fr/g/green/" ^ icon ^ ".png"))
+    ()
+
 (* ************************************************************************** *)
 (* Set GitHub Login/Password                                                  *)
 (* ************************************************************************** *)
@@ -159,15 +165,13 @@ let _ =
 let calendar_id =
   ("o4tijjunbuucrf9d3p8ijk8s54@group.calendar.google.com", GCal.LightGreen)
 
-let global_calendar_id =
-  ("u5u80vniilf4k480mqgiq5tl44@group.calendar.google.com", GCal.Green)
-
 let available_timezones =
   ["Europe/Paris";
    "Asia/Shanghai";
    "Europe/Helsinki";
    "Europe/Stockholm";
    "America/Los_Angeles";
+   "America/New_York";
   ]
 
 let default_timezone =
@@ -224,9 +228,10 @@ let skeletton
     ?curr_service:(curr_service=main)
     body_content =
   let menu =
-    let menu_li_elt (serv, (name, dsc)) =
-      let txt = [pcdata name; small [pcdata dsc]] in
-      let link = a ~service:(serv) txt () in
+    let menu_li_elt (serv, (name, dsc, licon)) =
+      let txt = [icon licon; pcdata " "; pcdata name; small [pcdata dsc]] in
+      let link = a ~a:[a_style "color: #4ed89a; font-weight: bold;"]
+	~service:(serv) txt () in
       if serv == nolink
       then li ~a:[a_class ["nav-header"]] txt
       else if serv == curr_service
@@ -275,19 +280,19 @@ let _ =
         [
           img ~alt:("La Vie Est Un Jeu") ~a:[a_class ["cute_logo"]]
             ~src:(Tools.sturi ["img"; "cuteface_small.png"]) ();
-          h2 [pcdata "Bonjour le groupe d'EIP le plus awesome de l'univers !"];
+          h2 [pcdata "Bonjour, chers collègues et amis,"];
           h4 ~a:[a_class ["subtitle"]]
             [pcdata "Bienvenue sur notre portail."];
           p [pcdata ("Ce portail a pour but de regrouper tous nos outils afin" ^
                         " de vous aider au quotidien. Il est donc fortement" ^
-                        " conseillé de s'y rendre tous les jours.")];
+                        " conseillé de vous y rendre tous les jours.")];
           div ~a:[a_class ["row-fluid"; "paraph"]]
             [div ~a:[a_class ["span3"; "well"; "well-small"]]
                 [right_icon "calendar.png";
                  h4 [pcdata "1ère étape : ";
                      a ~service:agenda [pcdata "L'agenda"] ()];
-                 p [pcdata ("Vérifiez les rendez-vous EIP du jour et les" ^
-                               " prochaines dead-line.")]];
+                 p [pcdata ("Vérifiez les rendez-vous du jour, les" ^
+                               " prochaines dead-lines et les événements.")]];
              div ~a:[a_class ["span3"; "well"; "well-small"]]
                [right_icon "gmail.png";
                 h4 [pcdata "2ème étape : ";
@@ -300,21 +305,46 @@ let _ =
                 h4 [pcdata "3ème étape : ";
                     a ~service:issues [pcdata "Les tâches en cours"] ()];
                 p [pcdata ("Allez voir vos tâches en cours dans la liste des" ^
-                              " issues GitHub. Si vous n'en avez pas en" ^
+                              " tâches. Si vous n'en avez pas en" ^
                               " cours, assignez-vous aux tâches qui n'ont" ^
                               " pas encore d'assigné.")]];
              div ~a:[a_class ["span3"; "well"; "well-small"]]
-               [right_icon "code.png";
-                h4 [pcdata "4ème étape : Codez !"];
-                p [pcdata ("Vous êtes prêt à coder pour l'EIP ! Si vous" ^
-                              " avez la moindre question, utilisez l'issue" ^
-                              " sur laquelle vous êtes, la mailing-list ou" ^
-                              " le channel irc.")]]
-            ]
+               [right_icon "productivity.png";
+                h4 [pcdata "4ème étape : Get things done!"];  
+           p [pcdata ("Vous êtes prêt à réaliser les tâche du projet ! Si vous" ^
+                              " avez la moindre question, utilisez la task" ^
+                              " sur laquelle vous êtes ou la mailing-list.")]]
+            ];
+	  hr ();
+	  h2 [pcdata "External links"];
+	  div ~a:[a_class ["row-fluid"]]
+	    [
+	      div ~a:[a_class ["span4"; "well"]]
+		[h3 [pcdata "Showcase website"];
+		 p [pcdata ("Public portal for our community of beta-testers"
+			    ^ " and potential investors.")];
+		 Tools.external_link "http://life.db0.fr/"
+		   [div ~a:[a_class ["btn"; "btn-success"]]
+		       [pcdata "» Visit the website"]]];
+	      div ~a:[a_class ["span4"; "well"]]
+		[h3 [pcdata "1st version"];
+		 p [pcdata ("The demo of the first version of the website."
+			    ^ " Might not be running.")];
+		 Tools.external_link "http://life.paysdu42.fr:2010/"
+		   [div ~a:[a_class ["btn"; "btn-success"]]
+		       [pcdata "» Visit the website"]]];
+	      div ~a:[a_class ["span4"; "well"]]
+		[h3 [pcdata "API Web service"];
+		 p [pcdata ("Demo of the web service."
+			    ^ " Might not be running.")];
+		 Tools.external_link "http://life.paysdu42.fr:2048/"
+		   [div ~a:[a_class ["btn"; "btn-success"]]
+		       [pcdata "» Visit the website"]]];
+	    ]
         ])
 
 (* ************************************************************************** *)
-(* Agenda                                                                     *)
+(* Calendar                                                                     *)
 (* ************************************************************************** *)
 
 let _ =
@@ -326,24 +356,15 @@ let _ =
         List.map make_calendar available_timezones in
       let div_iframe = div [List.assoc default_timezone calendars] in
       skeletton ~page_title:(get_page_title agenda) ~curr_service:agenda
-        [timezone_tabs calendars div_iframe; div_iframe])
-
-(* ************************************************************************** *)
-(* Global Agenda                                                              *)
-(* ************************************************************************** *)
-
-let _ =
-  Example.register ~service:global_agenda
-    (fun () () ->
-      let calendars =
-        let make_calendar tmz =
-          (tmz, my_kind_of_calendar global_calendar_id GCal.Month tmz) in
-        List.map make_calendar available_timezones in
-      let div_iframe = div [List.assoc default_timezone calendars] in
-      skeletton
-        ~page_title:(get_page_title global_agenda)
-        ~curr_service:global_agenda
-        [timezone_tabs calendars div_iframe; div_iframe])
+        [h1 [pcdata "Calendar"];
+	 h4 [pcdata "Add it in your own calendar"];
+	 p [pcdata ("It is highly recommended, for your own organization and the"
+		    ^ " cohesion of the team, to use a calendar and to " ^ 
+		      " synchronize it with this one. You may also install" ^
+		       " an app on your smartphone to get notifications.")];
+	 p [pcdata "Use this ICal URL to add it on your calendar:"];
+	 pre [pcdata (fst calendar_id)];
+	 timezone_tabs calendars div_iframe; div_iframe])
 
 (* ************************************************************************** *)
 (* Issues                                                                     *)
@@ -371,11 +392,12 @@ let _ =
 		 b [pcdata a.Github.a_name]]
               | None   ->
 		[h3 ~a:[a_class ["badge"; "badge-important"]]
-		    [pcdata "Personne !"]]
+		    [pcdata "Nobody !"]]
 	    and display_labels =
 	      let display_label label =
 		span ~a:[a_class ["badge"];
-			 a_style ("background-color: #" ^ label.Github.label_color)]
+			 a_style ("background-color: #"
+				  ^ label.Github.label_color)]
 		  [pcdata label.Github.label_name] in
 	      List.map display_label in
             tr ~a:[a_style
@@ -388,7 +410,7 @@ let _ =
                td (display_assignee issue.Github.assignee);
                td [Tools.external_link issue.Github.issue_url
                       [div ~a:[a_class ["btn"; "btn-info"; "btn-large"]]
-			  [pcdata "» Voir le détail de la tâche"]];
+			  [pcdata "» Details of the task"]];
 		  ];
               ] in
 	  match issues.Github.issues with
@@ -397,15 +419,18 @@ let _ =
 	      div ~a:[a_id (repo.Github.name ^ "/")]
 		[h2 [pcdata repo.Github.name];
 		 table ~a:[a_class ["table"; "table-bordered"]]
-		   (tr [th [pcdata "Dépôt"];
+		   (tr [th [pcdata "Repository"];
 			th [pcdata "Labels"];
-			th [pcdata "Nom de la tâche (issue)"];
-			th [pcdata "Assigné"];
-			th [pcdata "Lien"]
+			th [pcdata "Task name (issue)"];
+			th [pcdata "Assigned"];
+			th [pcdata "Link"]
 		       ])
 		   (mapi display_issue issues)] in
         div [h1 [pcdata (get_page_title_anyway issues)];
 	     display_summary o_issues.Github.o_issues;
+	     p [pcdata ("All the tasks in the Internal_tools repository are not"
+			^ " code-related. If you are not a developer, go check"
+			^ " them out!")];
 	     div (List.map display_repo o_issues.Github.o_issues)] in
       skeletton ~page_title:(get_page_title issues) ~curr_service:issues
 	[match Github.get_issues_from_organization "LaVieEstUnJeu" with
@@ -426,22 +451,22 @@ let _ =
               [div ~a:[a_class ["span6"]] [b [pcdata name]];
                div ~a:[a_class ["span6"]] [content]]
           and infos =
-            [("Nombre de tâches en cours", 
+            [("Open tasks", 
               cdata (string_of_int repo.Github.nb_issues));
              ("Description", pcdata repo.Github.description);
-             ("Date de dernier push", pcdata repo.Github.pushed_at);
+             ("Last push", pcdata repo.Github.pushed_at);
              ("git clone", pre [pcdata repo.Github.git_url]);
             ] in
           div ~a:[a_class ["well"]]
             [h1 [pcdata (repo.Github.name)];
              div (List.map horizontal_element infos);
-             Tools.external_link repo.Github.issues_url
-               [div ~a:[a_class ["btn"; "btn-success"; "btn-large"]]
-                   [pcdata "» Voir les tâches en cours"]];
+             (* Tools.external_link repo.Github.issues_url *)
+             (*   [div ~a:[a_class ["btn"; "btn-success"; "btn-large"]] *)
+             (*       [pcdata "» Browse ongoing tasks"]]; *)
              pcdata " ";
              Tools.external_link repo.Github.url
                [div ~a:[a_class ["btn"; "btn-info"; "btn-large"]]
-                   [pcdata "» Voir le dépôt"]];
+                   [pcdata "» Open repository"]];
             ] in
 	div [h1 [pcdata (get_page_title_anyway github)];
              div (List.map display_repo (repos.Github.repos))] in
@@ -457,11 +482,11 @@ let _ =
 let _ =
   let url = "https://docs.google.com/folder/d/" ^
     "0Bw8n0yHMUHF-NlRFUk15N2hTUC1lRkVrakhzYWdIdw" in
-  Example.register ~service:drive
+  Example.register ~service:documents
     (fun () () ->
-      skeletton ~page_title:(get_page_title drive) ~curr_service:drive
+      skeletton ~page_title:(get_page_title documents) ~curr_service:documents
         [div ~a:[a_class ["hero-unit"]]
-            [h1 [pcdata (get_page_title_anyway drive)];
+            [h1 [pcdata (get_page_title_anyway documents)];
              img ~alt:("Drive") ~a:[a_class ["pull-right"]]
                ~src:(Tools.sturi ["img"; "drive.png"]) ();
              p [pcdata ("Ce dossier contient certains documents pouvant être" ^
@@ -512,27 +537,19 @@ let _ =
          ("Hostname", [pcdata "gangbang"]);
          ("I.P.", [pcdata "88.191.147.207"]);
          ("Reverse", [pcdata "life.paysdu42.fr"]);
-         ("Prix", [pcdata ("2€ par personne par mois, 1 mois gratuit tous" ^
-                              "les 10 mois")]);
-         ("Se loguer", [pre [pcdata "$> ssh login@life.paysdu42.fr"];
-                        small [pcdata "\"login\" est votre pseudo"]]);
-         ("Changer de pass", [pre [pcdata "$> passwd"]]);
-         ("Toutes les news à propos du serveur",
+         ("Price", [pcdata ("2€ per developer per month, " ^
+                              "1 month free every 10 months")]);
+         ("Login", [pre [pcdata "$> ssh login@life.paysdu42.fr"];
+                        small [pcdata "\"login\" is your nickname"]]);
+         ("Change your password", [pre [pcdata "$> passwd"]]);
+         ("News about the server",
           [Tools.external_link url_server_thread
-              [pcdata "Fil de discussion sur la mailing-list"]]);
-         ("IRC", [pcdata "Si vous voulez être sur le chan irc tout le temps :";
-                  pre [pcdata "$> screen irssi 
-/server irc.rezosup.org 
-/join #life-eip "];
-                  pcdata "Pour sortir :";
-                  pre [pcdata "Ctrl + A + D"];
-                  pcdata "Pour revenir plus tard :";
-                  pre [pcdata "screen -rd"]]);
+              [pcdata "Thread on the mailing-list"]]);
         ] in
       skeletton ~page_title:(get_page_title server) ~curr_service:server
         [div ~a:[a_class ["row-luid"]]
             [div ~a:[a_class ["span5"]]
-                [h3 [pcdata "Informations sur le serveur"];
+                [h3 [pcdata "Informations about the server"];
                  dl ~a:[a_class ["dl-horizontal"]]
                    (List.map
                       (fun (key, value) ->
@@ -541,44 +558,8 @@ let _ =
                       infos)
                 ];
              div ~a:[a_class ["span7"]]
-               [h3 [pcdata "Trésorerie"];
+               [h3 [pcdata "Financing the server"];
                 great_iframe url]]])
-
-(* ************************************************************************** *)
-(* Channel IRC                                                                *)
-(* ************************************************************************** *)
-
-let _ =
-  Example.register ~service:irc
-    (fun () () ->
-      let center_icon url =
-        img ~alt:("icon") ~a:[a_class ["center_icon"]]
-          ~src:(Tools.sturi ["img"; url]) () in
-      let irc_serv = "irc.rezosup.org"
-      and irc_chan = "life-eip" in
-      let url = "http://widget.mibbit.com/" ^
-        "?server=" ^ irc_serv ^
-        "&channel=%23" ^ irc_chan in
-      skeletton ~page_title:(get_page_title irc) ~curr_service:irc
-        [h3 [pcdata "Notre channel irc "; code [pcdata ("#" ^ irc_chan)];
-             pcdata " sur "; code [pcdata irc_serv]];
-         p [pcdata "Pour le rejoindre, 3 solutions :"];
-         div ~a:[a_class ["row-fluid"]]
-           [div ~a:[a_class ["span3"]]
-               [div ~a:[a_class ["well"; "irc"]]
-                   [Tools.external_link
-                       ("irc://" ^ irc_serv ^ "/" ^ irc_chan)
-                       [center_icon "mirc.png"; br (); br ();
-                        pcdata "Utiliser un client lourd"]];
-                div ~a:[a_class ["well"; "irc"]]
-                  [a ~service:server
-                      [center_icon "irssi.png"; br (); br ();
-                       pcdata "Utiliser irssi sur le serveur"] ()];
-                div ~a:[a_class ["well"; "irc"]]
-                  [center_icon "mibbit.png"; br (); br ();
-                   pcdata "Utiliser le widget ci-contre"]];
-            div ~a:[a_class ["span9"]]
-              [great_iframe url]]])
 
 (* ************************************************************************** *)
 (* Group information                                                          *)
@@ -600,52 +581,35 @@ let _ =
                     a_style "height: 2500px;"] []])
 
 (* ************************************************************************** *)
-(* Site Vitrine                                                               *)
+(* F.A.Q.                                                                     *)
 (* ************************************************************************** *)
 
 let _ =
-  Example.register ~service:vitrine
+  Example.register ~service:faq
     (fun () () ->
-      skeletton ~page_title:(get_page_title vitrine) ~curr_service:vitrine
-        [great_iframe "http://eip.epitech.eu/2014/lavieestunjeu/"])
+      let url = "https://docs.google.com/document/d/1q5Ou3VAwzpNi6IhZrHSvClYkSgCNgWv6WQhmY7SIjtQ/pub" in
+      skeletton ~page_title:(get_page_title faq) ~curr_service:faq
+        [great_iframe url])
 
 (* ************************************************************************** *)
-(* Tickets                                                                    *)
+(* Epitech                                                                    *)
 (* ************************************************************************** *)
 
 let _ =
-  Example.register ~service:tickets
+  Example.register ~service:epitech
     (fun () () ->
-      skeletton ~page_title:(get_page_title tickets) ~curr_service:tickets
-        [great_iframe "https://eip.epitech.eu/projects/view/464#discussions"])
+      let liurl txt url =
+	li [Tools.external_link url [pcdata txt]] in
+      skeletton ~page_title:(get_page_title epitech) ~curr_service:epitech
+        [h3 [pcdata "Epitech & LabEIP"];
+	 ul
+	   [liurl "Grades, marks, follow-up"
+	       "https://eip.epitech.eu/projects/view/464#wall";
+	    liurl "Live Meeting"
+	      "https://www.livemeeting.com/cc/ionis/join?id=MFWG42&role=present&pw=Aepiecae";
+	    liurl "SVN Rendu Repository"
+	      "https://labeip.epitech.eu/svn/2014/lavieestunjeu";
+	    liurl "Tickets with the LabEIP"
+	       "https://eip.epitech.eu/projects/view/464#discussions";
+	   ]])
 
-(* ************************************************************************** *)
-(* Visio Lab EIP                                                              *)
-(* ************************************************************************** *)
-
-let _ =
-  Example.register ~service:visio
-    (fun () () ->
-      skeletton ~page_title:(get_page_title visio) ~curr_service:visio
-        [great_iframe "https://eip.epitech.eu/projects/view/464#infos"])
-
-(* ************************************************************************** *)
-(* Consignes docs                                                             *)
-(* ************************************************************************** *)
-
-let _ =
-  Example.register ~service:instructions
-    (fun () () ->
-      skeletton ~page_title:(get_page_title instructions)
-        ~curr_service:instructions
-        [great_iframe "https://labeip.epitech.eu/svn/eip/public/2014"])
-
-(* ************************************************************************** *)
-(* Marks                                                                      *)
-(* ************************************************************************** *)
-
-let _ =
-  Example.register ~service:marks
-    (fun () () ->
-      skeletton ~page_title:(get_page_title marks) ~curr_service:marks
-        [great_iframe "https://eip.epitech.eu/projects/view/464#wall"])

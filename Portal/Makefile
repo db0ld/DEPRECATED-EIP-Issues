@@ -6,7 +6,7 @@ STATICDIR := static/
 
 ## Packages required to build the server part of the application
 
-SERVER_PACKAGES := curl, yojson
+SERVER_PACKAGES := yojson curl
 
 ## Packages to be linked in the client part
 
@@ -116,8 +116,9 @@ distclean: clean.local
 
 ## Dependencies
 
-depend: .depend
-.depend: ${SERVER_FILES} ${CLIENT_FILES}
+## Dependencies
+
+make_depend: ${SERVER_FILES} ${CLIENT_FILES}
 	$(ELIOMDEP) -server ${SERVER_INC} ${SERVER_FILES} > .depend
 	$(ELIOMDEP) -client ${CLIENT_INC} ${CLIENT_FILES} >> .depend
 
