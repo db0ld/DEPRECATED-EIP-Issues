@@ -490,43 +490,19 @@ let _ =
 	  | Github.ApiError e -> display_error e])
 
 (* ************************************************************************** *)
-(* Google Drive                                                               *)
+(* Documents                                                                  *)
 (* ************************************************************************** *)
 
 let _ =
-  let url = "https://docs.google.com/folder/d/" ^
-    "0Bw8n0yHMUHF-NlRFUk15N2hTUC1lRkVrakhzYWdIdw" in
   Example.register ~service:documents
     (fun () () ->
       skeletton ~page_title:(get_page_title documents) ~curr_service:documents
-	[h1 [pcdata "Documents"];
-	 match Github.get_readme "LaVieEstUnJeu" "Doc" with
+	[match Github.get_readme "LaVieEstUnJeu" "Doc" with
 	   | Github.ApiSuccess readme ->
 	     (Html5.F.unsafe_data readme : [> Html5_types.b ] Html5.F.elt)
 	   | Github.ApiError e -> display_error e;
 	]
     )
-        (* [div ~a:[a_class ["hero-unit"]] *)
-        (*     [h1 [pcdata (get_page_title_anyway documents)]; *)
-        (*      img ~alt:("Drive") ~a:[a_class ["pull-right"]] *)
-        (*        ~src:(Tools.sturi ["img"; "drive.png"]) (); *)
-        (*      p [pcdata ("Ce dossier contient certains documents pouvant être" ^ *)
-        (*                    " utiles, comme par exemple la trésorerie ou les" ^ *)
-        (*                    " informations sur les membres.")]; *)
-        (*      p [pcdata ("Nous l'utilisons également lorsque nous rédigeons" ^ *)
-        (*                    " des documents à plusieurs.")]; *)
-        (*      p [span ~a:[a_class ["label"; "label-important"]] *)
-        (*            [pcdata "Attention !"]; *)
-        (*         pcdata (" Une fois le document estimé terminé, il est passé" ^ *)
-        (*                    " en LaTeX et mis sur le dépôt. Les documents du" ^ *)
-        (*                    " Google Docs sont donc considérés \"deprecated\"" ^ *)
-        (*                    " et il ne faut plus les utiliser en faveur de" ^ *)
-        (*                    " ceux sur le dépôt.")]; *)
-        (*      p [Tools.external_link "https://github.com/LaVieEstUnJeu/Doc" *)
-        (*            [pcdata "Le dépôt des documents"]]; *)
-        (*      Tools.external_link ~path:["edit"] url *)
-        (*        [div ~a:[a_class ["btn"; "btn-info"; "btn-large"]] *)
-        (*            [pcdata "» Voir le dossier Google Documents"]]]]) *)
 
 (* ************************************************************************** *)
 (* E-mails mailing list Google Groups                                         *)
