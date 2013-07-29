@@ -55,7 +55,7 @@ let pages =
    (group,         ("Team", "All the team members and their info", "group"));
 
    (nolink,        ("Code", "", "embed_close"));
-   (github,        ("GitHub", "Our repositories", "inbox_in"));
+   (github,        ("GitHub", "Our repositories", "github"));
    (server,        ("The Server", "We use it to test and code", "cloud"));
 
    (nolink,        ("Wiki", "", "circle_info"));
@@ -184,11 +184,12 @@ let timezone_tabs calendars div_iframe =
     let elt =
       let classs = if tmz_str = default_timezone then ["active"] else [] in
       li ~a:[a_id tmz_str; a_class classs]
-        [a ~service:nolink [pcdata tmz_str] ()] in
+        [Html5.F.Raw.a ~a:[a_href (Xml.uri_of_string "#")] [pcdata tmz_str]] in
     let _ = Eliom_service.onload
       {{
         let replace_iframe _ =
           let container = To_dom.of_div %div_iframe
+	  and _ = Firebug.console##log (Js.string "test")
           and to_replace = Tools.get_element_by_id "calendar"
           and new_div = To_dom.of_iframe %cal
           and tab = Tools.get_element_by_id %tmz_str in
@@ -230,8 +231,7 @@ let skeletton
   let menu =
     let menu_li_elt (serv, (name, dsc, licon)) =
       let txt = [icon licon; pcdata " "; pcdata name; small [pcdata dsc]] in
-      let link = a ~a:[a_style "color: #4ed89a; font-weight: bold;"]
-	~service:(serv) txt () in
+      let link = a ~service:(serv) txt () in
       if serv == nolink
       then li ~a:[a_class ["nav-header"]] txt
       else if serv == curr_service
@@ -258,7 +258,8 @@ let skeletton
                   [menu];
                div ~a:[a_class ["page"; "span10"]]
                  body_content];
-           Tools.script_url ["bootstrap.js"]
+           Tools.script_url ["jquery.min.js"];
+           Tools.script_url ["bootstrap.js"];
           ]))
 
 (* ************************************************************************** *)
@@ -278,42 +279,42 @@ let _ =
           ~src:(Tools.sturi ["img"; url]) () in
       skeletton
         [
-          img ~alt:("La Vie Est Un Jeu") ~a:[a_class ["cute_logo"]]
-            ~src:(Tools.sturi ["img"; "cuteface_small.png"]) ();
-          h2 [pcdata "Bonjour, chers collègues et amis,"];
+          img ~alt:("Life") ~a:[a_class ["cute_logo"]]
+            ~src:(Tools.sturi ["img"; "Life_green.png"]) ();
+          h2 [pcdata "Let's make everybody's lives a game!"];
           h4 ~a:[a_class ["subtitle"]]
-            [pcdata "Bienvenue sur notre portail."];
-          p [pcdata ("Ce portail a pour but de regrouper tous nos outils afin" ^
-                        " de vous aider au quotidien. Il est donc fortement" ^
-                        " conseillé de vous y rendre tous les jours.")];
+            [pcdata "Welcome! This is Life Internal Portal."];
+          small [pcdata ("It's centralizing all the tools the team "
+			 ^ "is using so you don't get lost.")];
           div ~a:[a_class ["row-fluid"; "paraph"]]
             [div ~a:[a_class ["span3"; "well"; "well-small"]]
                 [right_icon "calendar.png";
-                 h4 [pcdata "1ère étape : ";
-                     a ~service:agenda [pcdata "L'agenda"] ()];
-                 p [pcdata ("Vérifiez les rendez-vous du jour, les" ^
-                               " prochaines dead-lines et les événements.")]];
+                 h4 [pcdata "1st step: ";
+                     a ~service:agenda [pcdata "Calendar"] ()];
+                 p [pcdata ("Check the upcoming meetings," ^
+                               " deadlines and events.")]];
              div ~a:[a_class ["span3"; "well"; "well-small"]]
                [right_icon "gmail.png";
-                h4 [pcdata "2ème étape : ";
-                    a ~service:emails [pcdata "Les e-mails"] ()];
-                p [pcdata ("Lisez vos e-mails afin de vous tenir au courant " ^
-                              " de toutes les discussions en cours et de " ^
-                              "répondre aux éventuelles questions.")]];
+                h4 [pcdata "2nd step: ";
+                    a ~service:emails [pcdata "E-mails"] ()];
+                p [pcdata ("Read the latest e-mails to keep yourself up-to-date"
+			   ^ " on the latest group's discussions and answer"
+			   ^ " the questions asked to the team.")]];
              div ~a:[a_class ["span3"; "well"; "well-small"]]
                [right_icon "tasks.png";
-                h4 [pcdata "3ème étape : ";
-                    a ~service:issues [pcdata "Les tâches en cours"] ()];
-                p [pcdata ("Allez voir vos tâches en cours dans la liste des" ^
-                              " tâches. Si vous n'en avez pas en" ^
-                              " cours, assignez-vous aux tâches qui n'ont" ^
-                              " pas encore d'assigné.")]];
+                h4 [pcdata "3rd step: ";
+                    a ~service:issues [pcdata "Tasks"] ()];
+                p [pcdata ("Go check out the list of open tasks and pick yours." ^
+                              " If you're not assigned to a task yet,"
+			   ^ " go ahead and assign yourself to an existing one or"
+			   ^ " feel free to create a new one.")]];
              div ~a:[a_class ["span3"; "well"; "well-small"]]
                [right_icon "productivity.png";
-                h4 [pcdata "4ème étape : Get things done!"];  
-           p [pcdata ("Vous êtes prêt à réaliser les tâche du projet ! Si vous" ^
-                              " avez la moindre question, utilisez la task" ^
-                              " sur laquelle vous êtes ou la mailing-list.")]]
+                h4 [pcdata "Last step: Get things done!"];  
+		p [pcdata ("You're ready to work on the project!" ^
+                              " If you have any question about a task," ^
+                              " ask it on the task thread. You may also use" ^
+			      " the mailing list.")]]
             ];
 	  hr ();
 	  h2 [pcdata "External links"];
@@ -330,17 +331,33 @@ let _ =
 		[h3 [pcdata "1st version"];
 		 p [pcdata ("The demo of the first version of the website."
 			    ^ " Might not be running.")];
-		 Tools.external_link "http://life.paysdu42.fr:2010/"
+		 Tools.external_link "http://life.paysdu42.fr:2010"
 		   [div ~a:[a_class ["btn"; "btn-success"]]
 		       [pcdata "» Visit the website"]]];
 	      div ~a:[a_class ["span4"; "well"]]
 		[h3 [pcdata "API Web service"];
 		 p [pcdata ("Demo of the web service."
 			    ^ " Might not be running.")];
-		 Tools.external_link "http://life.paysdu42.fr:2048/"
+		 Tools.external_link "http://life.paysdu42.fr:2048"
 		   [div ~a:[a_class ["btn"; "btn-success"]]
 		       [pcdata "» Visit the website"]]];
-	    ]
+	    ];
+	  hr ();
+	  h2 [pcdata "First time here?"];
+	  p [pcdata "You might want to take the time to read a few ";
+	     a ~service:documents [pcdata "documents"] ();
+	     pcdata " before starting, read the ";
+	     a ~service:faq [pcdata "F.A.Q"] ();
+	     pcdata " and meet ";
+	     a ~service:group [pcdata "the team"] ();
+	     pcdata ".";
+	    ];
+	  p [pcdata "If you are a developer, you should also browse ";
+	     a ~service:github [pcdata "our repositories"] ();
+	     pcdata " and use ";
+	     a ~service:server [pcdata "our development server"] ();
+	     pcdata ".";
+	  ];
         ])
 
 (* ************************************************************************** *)
@@ -460,12 +477,9 @@ let _ =
           div ~a:[a_class ["well"]]
             [h1 [pcdata (repo.Github.name)];
              div (List.map horizontal_element infos);
-             (* Tools.external_link repo.Github.issues_url *)
-             (*   [div ~a:[a_class ["btn"; "btn-success"; "btn-large"]] *)
-             (*       [pcdata "» Browse ongoing tasks"]]; *)
              pcdata " ";
              Tools.external_link repo.Github.url
-               [div ~a:[a_class ["btn"; "btn-info"; "btn-large"]]
+               [div ~a:[a_class ["btn"; "btn-success"; "btn-large"]]
                    [pcdata "» Open repository"]];
             ] in
 	div [h1 [pcdata (get_page_title_anyway github)];
@@ -485,27 +499,34 @@ let _ =
   Example.register ~service:documents
     (fun () () ->
       skeletton ~page_title:(get_page_title documents) ~curr_service:documents
-        [div ~a:[a_class ["hero-unit"]]
-            [h1 [pcdata (get_page_title_anyway documents)];
-             img ~alt:("Drive") ~a:[a_class ["pull-right"]]
-               ~src:(Tools.sturi ["img"; "drive.png"]) ();
-             p [pcdata ("Ce dossier contient certains documents pouvant être" ^
-                           " utiles, comme par exemple la trésorerie ou les" ^
-                           " informations sur les membres.")];
-             p [pcdata ("Nous l'utilisons également lorsque nous rédigeons" ^
-                           " des documents à plusieurs.")];
-             p [span ~a:[a_class ["label"; "label-important"]]
-                   [pcdata "Attention !"];
-                pcdata (" Une fois le document estimé terminé, il est passé" ^
-                           " en LaTeX et mis sur le dépôt. Les documents du" ^
-                           " Google Docs sont donc considérés \"deprecated\"" ^
-                           " et il ne faut plus les utiliser en faveur de" ^
-                           " ceux sur le dépôt.")];
-             p [Tools.external_link "https://github.com/LaVieEstUnJeu/Doc"
-                   [pcdata "Le dépôt des documents"]];
-             Tools.external_link ~path:["edit"] url
-               [div ~a:[a_class ["btn"; "btn-info"; "btn-large"]]
-                   [pcdata "» Voir le dossier Google Documents"]]]])
+	[h1 [pcdata "Documents"];
+	 match Github.get_readme "LaVieEstUnJeu" "Doc" with
+	   | Github.ApiSuccess readme ->
+	     (Html5.F.unsafe_data readme : [> Html5_types.b ] Html5.F.elt)
+	   | Github.ApiError e -> display_error e;
+	]
+    )
+        (* [div ~a:[a_class ["hero-unit"]] *)
+        (*     [h1 [pcdata (get_page_title_anyway documents)]; *)
+        (*      img ~alt:("Drive") ~a:[a_class ["pull-right"]] *)
+        (*        ~src:(Tools.sturi ["img"; "drive.png"]) (); *)
+        (*      p [pcdata ("Ce dossier contient certains documents pouvant être" ^ *)
+        (*                    " utiles, comme par exemple la trésorerie ou les" ^ *)
+        (*                    " informations sur les membres.")]; *)
+        (*      p [pcdata ("Nous l'utilisons également lorsque nous rédigeons" ^ *)
+        (*                    " des documents à plusieurs.")]; *)
+        (*      p [span ~a:[a_class ["label"; "label-important"]] *)
+        (*            [pcdata "Attention !"]; *)
+        (*         pcdata (" Une fois le document estimé terminé, il est passé" ^ *)
+        (*                    " en LaTeX et mis sur le dépôt. Les documents du" ^ *)
+        (*                    " Google Docs sont donc considérés \"deprecated\"" ^ *)
+        (*                    " et il ne faut plus les utiliser en faveur de" ^ *)
+        (*                    " ceux sur le dépôt.")]; *)
+        (*      p [Tools.external_link "https://github.com/LaVieEstUnJeu/Doc" *)
+        (*            [pcdata "Le dépôt des documents"]]; *)
+        (*      Tools.external_link ~path:["edit"] url *)
+        (*        [div ~a:[a_class ["btn"; "btn-info"; "btn-large"]] *)
+        (*            [pcdata "» Voir le dossier Google Documents"]]]]) *)
 
 (* ************************************************************************** *)
 (* E-mails mailing list Google Groups                                         *)
@@ -568,17 +589,9 @@ let _ =
 let _ =
   Example.register ~service:group
     (fun () () ->
-      let url_infos = "https://docs.google.com/spreadsheet/pub" ^
-        "?key=0Ag8n0yHMUHF-dDJPS1RuLUdYUlc1WFYwMUlRaGJ0X0E" ^
-        "&single=true&gid=0&output=html&widget=true"
-      and url_teams = "https://docs.google.com/document/pub" ^
-        "?id=14ShvKV0krhqvmSaXshM6TBPYk8MOxPLEMHXp0woqGr4" ^
-        "&embedded=true" in
+      let url = "http://life.db0.fr/page/team.php?more" in
       skeletton ~page_title:(get_page_title group) ~curr_service:group
-        [iframe ~a:[a_src (Xml.uri_of_string url_infos);
-                    a_style "height: 300px;"] [];
-         iframe ~a:[a_src (Xml.uri_of_string url_teams);
-                    a_style "height: 2500px;"] []])
+	[great_iframe url])
 
 (* ************************************************************************** *)
 (* F.A.Q.                                                                     *)
