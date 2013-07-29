@@ -25,6 +25,7 @@ body {
     float: left;
     margin-right: 2%;
     margin-bottom: 1%;
+    width: 200px;
 }
 
 .right_icon {
@@ -99,3 +100,31 @@ h3 code {
     padding: 5px;
 }
 
+a {
+    color: #1e8959;
+}
+
+a:hover {
+    color: #4ed89a;
+}
+
+.nav-stacked a {
+    color: #4ed89a;
+    font-weight: bold;
+}
+.nav-stacked a small {
+    text-align: center;
+    padding-top: 5%;
+}
+
+.nav-stacked .active a {
+    background: #4ed89a;
+    color: white;
+}
+.nav-stacked .active a small {
+    color: white;
+}
+
+.nav-stacked .active a:hover {
+    background: #1e8959;
+}
