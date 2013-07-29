@@ -85,3 +85,9 @@ type organization_issues =
     }
 
 val get_issues_from_organization : string -> organization_issues api
+
+(* ************************************************************************** *)
+(* Get content of a repo                                                      *)
+(* ************************************************************************** *)
+
+val get_readme : string -> string -> string api

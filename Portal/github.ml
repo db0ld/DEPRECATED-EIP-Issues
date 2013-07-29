@@ -20,52 +20,48 @@ let userpwd = ref ""
 let account username password =
   userpwd := username ^ ":" ^ password
 
+let base_url = "https://api.github.com/"
+
 (* ************************************************************************** *)
 (* Curl Get Page                                                              *)
 (* ************************************************************************** *)
 
-(* string -> string                                                           *)
 (* Return a text from a url using Curl and HTTP Auth                          *)
 (* You must call "account" before calling this function                       *)
-(* This function can raise an exception on failure                            *)
-let get_text_form_url url =
-  let writer accum data =
-    Buffer.add_string accum data;
-    String.length data in
-  let result = Buffer.create 4096
-  and errorBuffer = ref "" in
-  Curl.global_init Curl.CURLINIT_GLOBALALL;
-  let text =
-    try
-      (let connection = Curl.init () in
-       Curl.set_errorbuffer connection errorBuffer;
-       Curl.set_writefunction connection (writer result);
-       Curl.set_followlocation connection true;
-       Curl.set_url connection url;
-       
-       Curl.set_httpauth connection [Curl.CURLAUTH_BASIC];
-       Curl.set_userpwd connection (!userpwd);
-       
-       Curl.set_useragent connection "LaVieEstUnJeu-Portal";
+let get_text_form_url ?(html = false) url =
+  try ApiSuccess
+	(let writer accum data =
+	   Buffer.add_string accum data;
+	   String.length data in
+	 let result = Buffer.create 4096
+	 and errorBuffer = ref "" in
+	 Curl.global_init Curl.CURLINIT_GLOBALALL;
+	 let text =
+	   try
+	     (let connection = Curl.init () in
+	      Curl.set_errorbuffer connection errorBuffer;
+	      Curl.set_writefunction connection (writer result);
+	      Curl.set_followlocation connection true;
+	      Curl.set_url connection url;
 
-       Curl.perform connection;
-       Curl.cleanup connection;
-       Buffer.contents result)
-    with
-      | Curl.CurlException (_, _, _) ->
-	raise (Failure ("Error: " ^ !errorBuffer))
-      | Failure s -> raise (Failure s) in
-  let _ = Curl.global_cleanup () in
-  text
+	      Curl.set_httpauth connection [Curl.CURLAUTH_BASIC];
+	      Curl.set_userpwd connection (!userpwd);
 
-(* string -> json                                                             *)
-(* Take a url, get the page and return a json tree                            *)
-let curljson url =
-  let result = get_text_form_url url in
-  Yojson.Basic.from_string result
+	      Curl.set_useragent connection "LaVieEstUnJeu-Portal";
 
-let go url f =
-  try ApiSuccess (f (curljson url))
+	      if html
+	      then Curl.set_httpheader connection
+		["Accept: application/vnd.github.VERSION.html+json"];
+
+		Curl.perform connection;
+	      Curl.cleanup connection;
+	      Buffer.contents result)
+	   with
+	     | Curl.CurlException (_, _, _) ->
+	       raise (Failure ("Error: " ^ !errorBuffer))
+	     | Failure s -> raise (Failure s) in
+	 let _ = Curl.global_cleanup () in
+	 text)
   with
     | Yojson.Basic.Util.Type_error (msg, tree) ->
       ApiError (msg ^ "\n" ^ (Yojson.Basic.to_string tree))
@@ -73,6 +69,16 @@ let go url f =
     | Failure msg -> ApiError msg
     | Invalid_argument s -> ApiError s
     | _ -> ApiError "something else"
+
+(* Take url, get page, apply function that takes a json tree, return result   *)
+let go_json url f =
+  match get_text_form_url url with
+    | ApiSuccess str -> ApiSuccess (f (Yojson.Basic.from_string str))
+    | ApiError error -> ApiError error
+
+(* Take url, get page in html format and return it                            *)
+let go_html url =
+  get_text_form_url ~html:true url
 
 (* ************************************************************************** *)
 (* Get repositories                                                           *)
@@ -106,7 +112,7 @@ let usertype_tostring = function
 (* ?usertype -> string -> repositories                                        *)
 let get_repos ?(usertype = User) user =
   let url =
-    "https://api.github.com/" ^ (usertype_tostring usertype) ^ "/" ^
+    base_url ^ (usertype_tostring usertype) ^ "/" ^
       user ^ "/repos?sort=updated&direction=desc" in
   let f tree =
     let repo tree =
@@ -129,7 +135,7 @@ let get_repos ?(usertype = User) user =
       user_name = user;
       repos     = repos;
     } in
-  go url f
+  go_json url f
 
 (* ************************************************************************** *)
 (* Get Issues                                                                 *)
@@ -167,7 +173,7 @@ type issues =
 (* string -> string -> issues                                                 *)
 let get_issues user repo_name =
   let url =
-    "https://api.github.com/repos/" ^ user ^ "/" ^
+    base_url ^ "repos/" ^ user ^ "/" ^
       repo_name ^ "/issues?state=open&sort=created&direction=asc" in
   let f tree =
     let issue tree =
@@ -202,7 +208,7 @@ let get_issues user repo_name =
 	  "/issues?sort=created&state=open";
       issues    = issues;
     } in
-  go url f
+  go_json url f
 
 (* repository -> issues                                                       *)
 let get_issues_from_repository repo =
@@ -233,3 +239,10 @@ let get_issues_from_organization org =
 	  o_issues     = List.map f repos.repos;
 	}
       with Failure e -> ApiError e
+
+(* ************************************************************************** *)
+(* Get content of a repo                                                      *)
+(* ************************************************************************** *)
+
+let get_readme repo_owner repo_name =
+  go_html (base_url ^ "repos/" ^ repo_owner ^ "/" ^ repo_name ^ "/readme")
