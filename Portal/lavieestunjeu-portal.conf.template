@@ -25,19 +25,15 @@
     <extension findlib-package="ocsigenserver.ext.staticmod"/>
     <extension findlib-package="eliom.server"/>
 
+    <extension findlib-package="curl" />
+    <extension findlib-package="yojson" />
+
     <charset>utf-8</charset>
     <debugmode/>
 
     <host hostfilter="*">
       <static dir="$PWD/static/" />
       <static dir="$PWD/bootstrap/" />
-
-      <eliom module="/usr/lib/ocaml/curl/curl.cma" />
-      <eliom module="/usr/local/lib/ocaml/3.12.1/easy-format/easy_format.cmo" />
-      <eliom module="/usr/local/lib/ocaml/3.12.1/biniou/bi_util.cmo" />
-      <eliom module="/usr/local/lib/ocaml/3.12.1/biniou/bi_share.cmo" />
-      <eliom module="/usr/local/lib/ocaml/3.12.1/biniou/bi_outbuf.cmo" />
-      <eliom module="/usr/local/lib/ocaml/3.12.1/yojson/yojson.cmo" />
 
       <eliom module="$PWD/_server/tools.cmo" />
       <eliom module="$PWD/_server/github.cmo" />

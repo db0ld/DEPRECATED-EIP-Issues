@@ -8,7 +8,7 @@
 {shared{
 open Eliom_content
 open Html5
-open F
+open D
 }}
 
 open Eliom_parameter
@@ -151,7 +151,8 @@ let _ =
     | Simplexmlparser.Element (name, list_attrib, content_list) ->
       if name = "github"
       then
-        Github.account
+        Github.connect
+	  ~agent:"LaVieEstUnJeu-Portal"
           (List.assoc "login" list_attrib)
           (List.assoc "password" list_attrib)
       else fail ()
@@ -253,14 +254,15 @@ let skeletton
     (html
        (head (title (pcdata page_title)) css_list)
        (body
-          [div ~a:[a_class ["main"; "row-fluid"]]
-              [div ~a:[a_class ["menu"; "span2"]]
-                  [menu];
-               div ~a:[a_class ["page"; "span10"]]
-                 body_content];
-           Tools.script_url ["jquery.min.js"];
-           Tools.script_url ["bootstrap.js"];
-          ]))
+          ([div ~a:[a_class ["main"; "row-fluid"]]
+               [div ~a:[a_class ["menu"; "span2"]]
+                   [menu];
+		div ~a:[a_class ["page"; "span10"]]
+                  body_content];
+            Tools.script_url ["jquery.min.js"];
+            Tools.script_url ["bootstrap.js"];
+           ] @ (if curr_service == issues
+	     then [Tools.script_url ["tasks.js"]] else []))))
 
 (* ************************************************************************** *)
 (* Service definition                                                         *)
@@ -409,7 +411,7 @@ let _ =
 		 b [pcdata a.Github.a_name]]
               | None   ->
 		[h3 ~a:[a_class ["badge"; "badge-important"]]
-		    [pcdata "Nobody !"]]
+		    [pcdata "Nobody"]]
 	    and display_labels =
 	      let display_label label =
 		span ~a:[a_class ["badge"];
@@ -433,16 +435,31 @@ let _ =
 	  match issues.Github.issues with
 	    | [] -> div []
 	    | issues ->
+	      let is_label label_name label =
+		label.Github.label_name = label_name in
+	      let is_bonus issue = List.exists (is_label "bonus") issue.Github.labels in
+	      let (bonus, regular) = List.partition is_bonus issues
+	      and table_header () =
+		(tr [th [pcdata "Repository"];
+		     th [pcdata "Labels"];
+		     th [pcdata "Task name (issue)"];
+		     th [pcdata "Assigned"];
+		     th [pcdata "Link"]
+		    ]) in
+	      let serv = Eliom_service.external_service
+		~prefix:("#") ~path:[] ~get_params:unit () in
 	      div ~a:[a_id (repo.Github.name ^ "/")]
 		[h2 [pcdata repo.Github.name];
 		 table ~a:[a_class ["table"; "table-bordered"]]
-		   (tr [th [pcdata "Repository"];
-			th [pcdata "Labels"];
-			th [pcdata "Task name (issue)"];
-			th [pcdata "Assigned"];
-			th [pcdata "Link"]
-		       ])
-		   (mapi display_issue issues)] in
+		   (table_header ()) (mapi display_issue regular);
+		 p [a ~a:[a_id repo.Github.name; a_class ["bonus_tasks"]]
+		       ~service:serv [pcdata ("+ " ^ (string_of_int (List.length bonus))
+					      ^ " bonus tasks")] ()];
+		 table ~a:[a_id (repo.Github.name ^ "_bonus");
+			   a_class ["table"; "table-bordered"];
+			   a_style "display: none"]
+		   (table_header ()) (mapi display_issue bonus);
+		] in
         div [h1 [pcdata (get_page_title_anyway issues)];
 	     display_summary o_issues.Github.o_issues;
 	     p [pcdata ("All the tasks in the Internal_tools repository are not"
@@ -451,8 +468,8 @@ let _ =
 	     div (List.map display_repo o_issues.Github.o_issues)] in
       skeletton ~page_title:(get_page_title issues) ~curr_service:issues
 	[match Github.get_issues_from_organization "LaVieEstUnJeu" with
-	  | Github.ApiSuccess o_issues -> display_o_issues o_issues
-	  | Github.ApiError e -> display_error e])
+	  | Github.Success o_issues -> display_o_issues o_issues
+	  | Github.Error e -> display_error e])
 
 (* ************************************************************************** *)
 (* GitHub repositories                                                        *)
@@ -486,8 +503,8 @@ let _ =
              div (List.map display_repo (repos.Github.repos))] in
       skeletton ~page_title:(get_page_title github) ~curr_service:github
 	[match Github.get_repos ~usertype:Github.Organization "LaVieEstUnJeu" with
-	  | Github.ApiSuccess repos -> display_repos repos
-	  | Github.ApiError e -> display_error e])
+	  | Github.Success repos -> display_repos repos
+	  | Github.Error e -> display_error e])
 
 (* ************************************************************************** *)
 (* Documents                                                                  *)
@@ -498,9 +515,9 @@ let _ =
     (fun () () ->
       skeletton ~page_title:(get_page_title documents) ~curr_service:documents
 	[match Github.get_readme "LaVieEstUnJeu" "Doc" with
-	   | Github.ApiSuccess readme ->
+	   | Github.Success readme ->
 	     (Html5.F.unsafe_data readme : [> Html5_types.b ] Html5.F.elt)
-	   | Github.ApiError e -> display_error e;
+	   | Github.Error e -> display_error e;
 	]
     )
 
@@ -567,7 +584,11 @@ let _ =
     (fun () () ->
       let url = "http://life.db0.fr/page/team.php?more" in
       skeletton ~page_title:(get_page_title group) ~curr_service:group
-	[great_iframe url])
+	[div ~a:[a_class ["alert"; "alert-info"]]
+	    [pcdata "You can edit your information ";
+	     Tools.external_link "http://goo.gl/WoCXL" [pcdata "on Google Drive"];
+	     pcdata "."];
+	 great_iframe url])
 
 (* ************************************************************************** *)
 (* F.A.Q.                                                                     *)
